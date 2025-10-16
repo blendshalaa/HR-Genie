@@ -23,3 +23,5 @@ const StatsCard = ({ icon: Icon, title, value, subtitle, color = 'primary' }) =>
     </div>
   );
 };
+
+export default StatsCard
