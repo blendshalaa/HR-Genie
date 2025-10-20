@@ -8,6 +8,8 @@ import DashboardPage from './pages/DashboardPage';
 import ChatPage from './pages/ChatPage';
 import LeavePage from './pages/LeavePage';
 import KnowledgePage from './pages/KnowledgePage';
+import UserManagementPage from './pages/UserManagmentPage';
+import LeaveApprovalsPage from './pages/LeaveApprovalsPage';
 
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
@@ -70,6 +72,9 @@ function App() {
                     <Route path="/leave" element={<LeavePage />} />
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
+
+<Route path="/leave-approvals" element={<LeaveApprovalsPage />} />
+<Route path="/users" element={<UserManagementPage />} />
                   </Routes>
                 </Layout>
               </PrivateRoute>
