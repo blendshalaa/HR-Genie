@@ -1,6 +1,8 @@
+// src/pages/UserManagementPage.jsx - COMPLETE FILE
+
 import React, { useState, useEffect } from 'react';
 import { userAPI } from '../services/api';
-import { Users, Search, Edit, Mail, Briefcase, Calendar } from 'lucide-react';
+import { Users, Search, Edit, Mail, Briefcase, Calendar, Save, X } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const UserManagementPage = () => {
@@ -10,6 +12,8 @@ const UserManagementPage = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [filterDepartment, setFilterDepartment] = useState('');
   const [filterRole, setFilterRole] = useState('');
+  const [editingUser, setEditingUser] = useState(null);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   useEffect(() => {
     if (!isAdmin) {
@@ -41,6 +45,11 @@ const UserManagementPage = () => {
     user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     user.email.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const handleEdit = (user) => {
+    setEditingUser(user);
+    setShowEditModal(true);
+  };
 
   const getRoleBadge = (role) => {
     const colors = {
@@ -150,6 +159,7 @@ const UserManagementPage = () => {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Role</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Hire Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Leave Balance</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-200">
@@ -189,11 +199,177 @@ const UserManagementPage = () => {
                       </p>
                     </div>
                   </td>
+                  <td className="px-6 py-4">
+                    <button
+                      onClick={() => handleEdit(user)}
+                      className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      title="Edit User"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
+      </div>
+
+      {/* Edit User Modal */}
+      {showEditModal && editingUser && (
+        <EditUserModal
+          user={editingUser}
+          onClose={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+          }}
+          onSuccess={() => {
+            setShowEditModal(false);
+            setEditingUser(null);
+            fetchUsers();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Edit User Modal Component
+const EditUserModal = ({ user, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    name: user.name,
+    department: user.department || '',
+    role: user.role,
+    sick_leave_balance: user.sick_leave_balance,
+    vacation_balance: user.vacation_balance,
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      await userAPI.update(user.id, formData);
+      alert('User updated successfully');
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update user');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl max-w-lg w-full animate-fadeIn">
+        <div className="border-b border-gray-200 p-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">Edit User</h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Name *
+            </label>
+            <input
+              type="text"
+              value={formData.name}
+              onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Department
+            </label>
+            <input
+              type="text"
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              placeholder="Engineering, Marketing, HR, etc."
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Role *
+            </label>
+            <select
+              value={formData.role}
+              onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              required
+            >
+              <option value="employee">Employee</option>
+              <option value="hr">HR</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sick Leave Balance
+              </label>
+              <input
+                type="number"
+                value={formData.sick_leave_balance}
+                onChange={(e) => setFormData({ ...formData, sick_leave_balance: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                min="0"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Vacation Balance
+              </label>
+              <input
+                type="number"
+                value={formData.vacation_balance}
+                onChange={(e) => setFormData({ ...formData, vacation_balance: parseInt(e.target.value) })}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+                min="0"
+              />
+            </div>
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Save className="w-5 h-5" />
+              {loading ? 'Saving...' : 'Save Changes'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   );

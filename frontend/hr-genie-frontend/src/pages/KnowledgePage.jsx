@@ -1,15 +1,20 @@
+
 import React, { useState, useEffect } from 'react';
 import { knowledgeAPI } from '../services/api';
 import KnowledgeCard from '../components/knowledge/KnowledgeCard';
-import { Search, BookOpen, X } from 'lucide-react';
+import { Search, BookOpen, X, Plus, Edit, Trash2 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 const KnowledgePage = () => {
+  const { isHR, isAdmin } = useAuth();
   const [articles, setArticles] = useState([]);
   const [categories, setCategories] = useState([]);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [loading, setLoading] = useState(true);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingArticle, setEditingArticle] = useState(null);
 
   useEffect(() => {
     fetchKnowledge();
@@ -39,6 +44,19 @@ const KnowledgePage = () => {
     }
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this article?')) return;
+    
+    try {
+      await knowledgeAPI.delete(id);
+      await fetchKnowledge();
+      setSelectedArticle(null);
+      alert('Article deleted successfully');
+    } catch (error) {
+      alert('Failed to delete article');
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -49,9 +67,23 @@ const KnowledgePage = () => {
 
   return (
     <div className="space-y-6 animate-fadeIn">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Knowledge Base</h1>
-        <p className="text-gray-600">Browse company policies, procedures, and FAQs</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">Knowledge Base</h1>
+          <p className="text-gray-600">Browse company policies, procedures, and FAQs</p>
+        </div>
+        {(isHR || isAdmin) && (
+          <button
+            onClick={() => {
+              setEditingArticle(null);
+              setShowCreateModal(true);
+            }}
+            className="flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700 transition-colors"
+          >
+            <Plus className="w-5 h-5" />
+            Add Article
+          </button>
+        )}
       </div>
 
       {/* Search and Filters */}
@@ -65,7 +97,7 @@ const KnowledgePage = () => {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 placeholder="Search articles..."
-                className="input pl-10"
+                className="w-full px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
               />
             </div>
           </div>
@@ -73,7 +105,7 @@ const KnowledgePage = () => {
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="input"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
             >
               <option value="">All Categories</option>
               {categories.map((cat) => (
@@ -95,16 +127,42 @@ const KnowledgePage = () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {articles.map((article) => (
-            <KnowledgeCard
-              key={article.id}
-              article={article}
-              onClick={() => setSelectedArticle(article)}
-            />
+            <div key={article.id} className="relative">
+              <KnowledgeCard
+                article={article}
+                onClick={() => setSelectedArticle(article)}
+              />
+              {(isHR || isAdmin) && (
+                <div className="absolute top-4 right-4 flex gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingArticle(article);
+                      setShowCreateModal(true);
+                    }}
+                    className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+                  >
+                    <Edit className="w-4 h-4 text-blue-600" />
+                  </button>
+                  {isAdmin && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDelete(article.id);
+                      }}
+                      className="p-2 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-600" />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
 
-      {/* Article Modal */}
+      {/* Article View Modal */}
       {selectedArticle && (
         <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto animate-fadeIn">
@@ -151,6 +209,159 @@ const KnowledgePage = () => {
           </div>
         </div>
       )}
+
+      {/* Create/Edit Article Modal */}
+      {showCreateModal && (
+        <CreateArticleModal
+          article={editingArticle}
+          onClose={() => {
+            setShowCreateModal(false);
+            setEditingArticle(null);
+          }}
+          onSuccess={() => {
+            setShowCreateModal(false);
+            setEditingArticle(null);
+            fetchKnowledge();
+          }}
+        />
+      )}
+    </div>
+  );
+};
+
+// Create Article Modal Component
+const CreateArticleModal = ({ article, onClose, onSuccess }) => {
+  const [formData, setFormData] = useState({
+    title: article?.title || '',
+    content: article?.content || '',
+    category: article?.category || 'policies',
+    tags: article?.tags?.join(', ') || '',
+  });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setError('');
+    setLoading(true);
+
+    try {
+      const data = {
+        ...formData,
+        tags: formData.tags.split(',').map(t => t.trim()).filter(t => t),
+      };
+
+      if (article) {
+        await knowledgeAPI.update(article.id, data);
+        alert('Article updated successfully');
+      } else {
+        await knowledgeAPI.create(data);
+        alert('Article created successfully');
+      }
+      onSuccess();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to save article');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-fadeIn">
+        <div className="sticky top-0 bg-white border-b border-gray-200 p-6 flex items-center justify-between">
+          <h2 className="text-2xl font-bold text-gray-900">
+            {article ? 'Edit Article' : 'Create New Article'}
+          </h2>
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <X className="w-6 h-6 text-gray-500" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+              {error}
+            </div>
+          )}
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Title *
+            </label>
+            <input
+              type="text"
+              value={formData.title}
+              onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Category *
+            </label>
+            <select
+              value={formData.category}
+              onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              required
+            >
+              <option value="policies">Policies</option>
+              <option value="benefits">Benefits</option>
+              <option value="procedures">Procedures</option>
+              <option value="faq">FAQ</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Content *
+            </label>
+            <textarea
+              value={formData.content}
+              onChange={(e) => setFormData({ ...formData, content: e.target.value })}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+              rows="10"
+              required
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Tags (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={formData.tags}
+              onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
+              placeholder="leave, policy, hr"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
+            />
+          </div>
+
+          <div className="flex gap-3 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="flex-1 bg-primary-600 text-white px-4 py-3 rounded-lg hover:bg-primary-700 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : article ? 'Update Article' : 'Create Article'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };
