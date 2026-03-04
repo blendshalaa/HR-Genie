@@ -2,15 +2,17 @@ import React, { useEffect, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { analyticsAPI, leaveAPI } from '../services/api';
 import StatsCard from '../components/dashboard/StatsCard';
-import { 
-  MessageSquare, 
-  Calendar, 
-  BookOpen, 
+import {
+  MessageSquare,
+  Calendar,
+  BookOpen,
   Clock,
   TrendingUp,
-  ArrowRight
+  ArrowRight,
+  Briefcase,
+  Users
 } from 'lucide-react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import { useNavigate } from 'react-router-dom';
 
 const DashboardPage = () => {
@@ -30,7 +32,7 @@ const DashboardPage = () => {
         analyticsAPI.getDashboard(),
         leaveAPI.getBalance()
       ]);
-      
+
       setStats(dashboardRes.data);
       setBalance(balanceRes.data.balance);
     } catch (error) {
@@ -95,16 +97,50 @@ const DashboardPage = () => {
           color="purple"
         />
         <StatsCard
-          icon={Clock}
-          title="Pending Requests"
-          value={stats?.stats?.pending_leave_requests || 0}
-          subtitle="Awaiting approval"
+          icon={Briefcase}
+          title="Open Positions"
+          value={5} // Mock data
+          subtitle="Actively recruiting"
           color="amber"
+        />
+        <StatsCard
+          icon={Users}
+          title="Headcount"
+          value={stats?.stats?.total_users || 42} // Fallback mock
+          subtitle="Total Employees"
+          color="green"
         />
       </div>
 
       {/* Charts and Activity */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Department Distribution (Mock) */}
+        <div className="card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-indigo-50 rounded-lg">
+              <Users className="w-5 h-5 text-indigo-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Headcount by Department</h3>
+              <p className="text-sm text-gray-500">Current Distribution</p>
+            </div>
+          </div>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={[
+              { name: 'Engineering', count: 15 },
+              { name: 'Sales', count: 8 },
+              { name: 'Marketing', count: 5 },
+              { name: 'HR', count: 4 },
+              { name: 'Operations', count: 10 }
+            ]}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="name" fontSize={12} stroke="#6b7280" />
+              <YAxis fontSize={12} stroke="#6b7280" />
+              <Tooltip cursor={{ fill: 'transparent' }} />
+              <Bar dataKey="count" fill="#4f46e5" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
         {/* Chat Activity Chart */}
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
@@ -121,25 +157,25 @@ const DashboardPage = () => {
             <ResponsiveContainer width="100%" height={250}>
               <LineChart data={stats.chat_activity}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   stroke="#9ca3af"
                   fontSize={12}
                   tickFormatter={(value) => new Date(value).toLocaleDateString('en', { month: 'short', day: 'numeric' })}
                 />
                 <YAxis stroke="#9ca3af" fontSize={12} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#fff', 
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: '#fff',
                     border: '1px solid #e5e7eb',
                     borderRadius: '8px',
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)'
                   }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="count" 
-                  stroke="#0ea5e9" 
+                <Line
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#0ea5e9"
                   strokeWidth={2}
                   dot={{ fill: '#0ea5e9', r: 4 }}
                   activeDot={{ r: 6 }}
@@ -218,7 +254,7 @@ const DashboardPage = () => {
             </button>
           </div>
           <p className="text-gray-600">
-            Access {stats.stats.total_knowledge_articles} articles covering company policies, 
+            Access {stats.stats.total_knowledge_articles} articles covering company policies,
             procedures, and FAQs. Use the AI assistant or browse directly.
           </p>
         </div>

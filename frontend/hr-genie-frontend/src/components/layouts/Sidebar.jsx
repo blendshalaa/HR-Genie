@@ -1,15 +1,20 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { 
-  LayoutDashboard, 
-  MessageSquare, 
-  Calendar, 
-  BookOpen, 
+import {
+  LayoutDashboard,
+  MessageSquare,
+  Calendar as CalendarIcon,
+  BookOpen,
   Bot,
   X,
   Users,
   CheckSquare,
-  Settings
+  Settings,
+  Building2,
+  Briefcase,
+  CircleDollarSign,
+  TrendingUp,
+  CalendarDays
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
@@ -19,11 +24,16 @@ const Sidebar = ({ isOpen, onClose }) => {
   const navItems = [
     { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', roles: ['employee', 'hr', 'admin'] },
     { to: '/chat', icon: MessageSquare, label: 'AI Assistant', roles: ['employee', 'hr', 'admin'] },
-    { to: '/leave', icon: Calendar, label: 'Leave Management', roles: ['employee', 'hr', 'admin'] },
+    { to: '/performance', icon: TrendingUp, label: 'Performance', roles: ['employee', 'hr', 'admin'] },
+    { to: '/leave', icon: CalendarIcon, label: 'Leave Management', roles: ['employee', 'hr', 'admin'] },
+    { to: '/calendar', icon: CalendarDays, label: 'Company Calendar', roles: ['employee', 'hr', 'admin'] },
     { to: '/knowledge', icon: BookOpen, label: 'Knowledge Base', roles: ['employee', 'hr', 'admin'] },
     // HR & Admin only
+    { to: '/recruitment', icon: Briefcase, label: 'Recruitment', roles: ['hr', 'admin'] },
+    { to: '/payroll', icon: CircleDollarSign, label: 'Payroll', roles: ['hr', 'admin'] },
     { to: '/leave-approvals', icon: CheckSquare, label: 'Leave Approvals', roles: ['hr', 'admin'] },
     // Admin only
+    { to: '/departments', icon: Building2, label: 'Departments', roles: ['admin', 'hr'] },
     { to: '/users', icon: Users, label: 'User Management', roles: ['admin'] },
   ];
 
@@ -75,10 +85,9 @@ const Sidebar = ({ isOpen, onClose }) => {
               to={item.to}
               onClick={() => window.innerWidth < 1024 && onClose()}
               className={({ isActive }) =>
-                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${
-                  isActive
-                    ? 'bg-primary-50 text-primary-700 font-medium'
-                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                `flex items-center gap-3 px-4 py-3 rounded-lg transition-all duration-200 ${isActive
+                  ? 'bg-primary-50 text-primary-700 font-medium'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                 }`
               }
             >

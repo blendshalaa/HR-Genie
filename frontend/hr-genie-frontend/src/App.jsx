@@ -11,6 +11,13 @@ import KnowledgePage from './pages/KnowledgePage';
 import UserManagementPage from './pages/UserManagmentPage';
 import LeaveApprovalsPage from './pages/LeaveApprovalsPage';
 
+// New HR Modules
+import DepartmentsPage from './pages/DepartmentsPage';
+import RecruitmentPage from './pages/RecruitmentPage';
+import PayrollPage from './pages/PayrollPage';
+import PerformancePage from './pages/PerformancePage';
+import CalendarPage from './pages/CalendarPage';
+
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
@@ -60,7 +67,7 @@ function App() {
               </PublicRoute>
             }
           />
-          
+
           <Route
             path="/*"
             element={
@@ -73,8 +80,15 @@ function App() {
                     <Route path="/knowledge" element={<KnowledgePage />} />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
 
-<Route path="/leave-approvals" element={<LeaveApprovalsPage />} />
-<Route path="/users" element={<UserManagementPage />} />
+                    <Route path="/leave-approvals" element={<LeaveApprovalsPage />} />
+                    <Route path="/users" element={<UserManagementPage />} />
+
+                    {/* New HR Modules */}
+                    <Route path="/departments" element={<DepartmentsPage />} />
+                    <Route path="/recruitment" element={<RecruitmentPage />} />
+                    <Route path="/payroll" element={<PayrollPage />} />
+                    <Route path="/performance" element={<PerformancePage />} />
+                    <Route path="/calendar" element={<CalendarPage />} />
                   </Routes>
                 </Layout>
               </PrivateRoute>
